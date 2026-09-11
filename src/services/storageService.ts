@@ -1,4 +1,8 @@
 import {
+  LunchRestaurant,
+  LunchOrder,
+  LunchOrderItem,
+  LunchOrderStatus,
   User,
   Project,
   Board,
@@ -55,6 +59,8 @@ class StorageService {
   private currentUserId: string = 'usr-pm';
   private currentProjectId: string = 'prj-pj01';
   private apiLogs: ApiLogEntry[] = [];
+  private lunchRestaurants: LunchRestaurant[] = [];
+  private lunchOrders: LunchOrder[] = [];
   private notifications: Notification[] = [];
   private listeners: Set<() => void> = new Set();
 
@@ -84,6 +90,8 @@ class StorageService {
         this.currentProjectId = storedProj;
       }
       this.syncFromBackend();
+      this.fetchLunchRestaurants();
+      this.fetchLunchOrders();
     } catch {
       this.resetToDefaults();
     }
@@ -885,6 +893,147 @@ class StorageService {
     if (col && (col.name.includes('Done') || col.name.includes('完成'))) return false;
     return new Date(task.due_date).getTime() < Date.now();
   }
+
+  // Lunch Order Management Methods
+  public getLunchRestaurants(): LunchRestaurant[] {
+    return this.lunchRestaurants;
+  }
+
+  public async fetchLunchRestaurants() {
+    try {
+      const data = await this.apiRequest('/api/lunch/restaurants', 'GET');
+      if (Array.isArray(data)) {
+        this.lunchRestaurants = data;
+        this.notify();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch lunch restaurants:', e);
+    }
+  }
+
+  public async createLunchRestaurant(restaurant: LunchRestaurant) {
+    this.lunchRestaurants.push(restaurant);
+    this.notify();
+    try {
+      await this.apiRequest('/api/lunch/restaurants', 'POST', restaurant);
+      await this.fetchLunchRestaurants();
+    } catch (e) {
+      console.warn('Failed to create lunch restaurant:', e);
+    }
+  }
+
+  public getLunchOrders(): LunchOrder[] {
+    return this.lunchOrders;
+  }
+
+  public async fetchLunchOrders() {
+    try {
+      const data = await this.apiRequest('/api/lunch/orders', 'GET');
+      if (Array.isArray(data)) {
+        this.lunchOrders = data;
+        this.notify();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch lunch orders:', e);
+    }
+  }
+
+  public async createLunchOrder(orderData: Partial<LunchOrder>) {
+    const tempId = 'o_' + Date.now();
+    const newOrder: LunchOrder = {
+      id: tempId,
+      title: orderData.title || '午餐團購',
+      restaurant_id: orderData.restaurant_id || '',
+      date: orderData.date || new Date().toISOString().split('T')[0],
+      cutoff_time: orderData.cutoff_time || '12:00',
+      status: 'OPEN',
+      created_by: orderData.created_by || '同仁',
+      created_at: new Date().toISOString(),
+      items: []
+    };
+    this.lunchOrders.unshift(newOrder);
+    this.notify();
+
+    try {
+      await this.apiRequest('/api/lunch/orders', 'POST', orderData);
+      await this.fetchLunchOrders();
+    } catch (e) {
+      console.warn('Failed to create lunch order:', e);
+    }
+  }
+
+  public async updateLunchOrderStatus(id: string, status: LunchOrderStatus) {
+    const order = this.lunchOrders.find(o => o.id === id);
+    if (order) {
+      order.status = status;
+      this.notify();
+    }
+    try {
+      await this.apiRequest('/api/lunch/orders/' + id + '/status', 'PUT', { status });
+      await this.fetchLunchOrders();
+    } catch (e) {
+      console.warn('Failed to update order status:', e);
+    }
+  }
+
+  public async addLunchOrderItem(orderId: string, itemData: Partial<LunchOrderItem>) {
+    const order = this.lunchOrders.find(o => o.id === orderId);
+    if (order) {
+      const newItem: LunchOrderItem = {
+        id: 'i_' + Date.now(),
+        order_id: orderId,
+        user_id: itemData.user_id || 'u_guest',
+        user_name: itemData.user_name || '同仁',
+        item_name: itemData.item_name || '',
+        price: itemData.price || 0,
+        quantity: itemData.quantity || 1,
+        note: itemData.note || '',
+        is_paid: Boolean(itemData.is_paid),
+        created_at: new Date().toISOString()
+      };
+      order.items.push(newItem);
+      this.notify();
+    }
+
+    try {
+      await this.apiRequest('/api/lunch/orders/' + orderId + '/items', 'POST', itemData);
+      await this.fetchLunchOrders();
+    } catch (e) {
+      console.warn('Failed to add lunch order item:', e);
+    }
+  }
+
+  public async toggleLunchItemPaid(itemId: string, isPaid: boolean) {
+    this.lunchOrders.forEach(o => {
+      const item = o.items.find(i => i.id === itemId);
+      if (item) {
+        item.is_paid = isPaid;
+      }
+    });
+    this.notify();
+
+    try {
+      await this.apiRequest('/api/lunch/items/' + itemId + '/paid', 'PUT', { is_paid: isPaid });
+      await this.fetchLunchOrders();
+    } catch (e) {
+      console.warn('Failed to toggle lunch item paid status:', e);
+    }
+  }
+
+  public async deleteLunchOrderItem(itemId: string) {
+    this.lunchOrders.forEach(o => {
+      o.items = o.items.filter(i => i.id !== itemId);
+    });
+    this.notify();
+
+    try {
+      await this.apiRequest('/api/lunch/items/' + itemId, 'DELETE');
+      await this.fetchLunchOrders();
+    } catch (e) {
+      console.warn('Failed to delete lunch item:', e);
+    }
+  }
+
 }
 
 export const storageService = new StorageService();

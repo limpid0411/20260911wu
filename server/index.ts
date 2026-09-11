@@ -1,9 +1,8 @@
-import express from 'express';
-import { db, seedDatabaseIfEmpty, getAllData } from './db';
+﻿import express from 'express';
+import { db, getAllData, getLunchRestaurants, addLunchRestaurant, getLunchOrders, addLunchOrder, updateLunchOrderStatus, addLunchOrderItem, toggleLunchItemPaid, deleteLunchOrderItem } from './db';
 import { Task, RFI, Project, BoardColumn, RFIAuditLog, Attachment, TaskComment, Notification, User } from '../src/types/pms';
 
 // Seed data if DB is empty
-seedDatabaseIfEmpty();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -50,13 +49,13 @@ app.post('/api/projects', (req, res) => {
     // Also create default board & columns for the project
     const boardId = `brd-${Date.now()}`;
     db.prepare('INSERT INTO boards (id, project_id, title, position, description) VALUES (?, ?, ?, ?, ?)')
-      .run(boardId, p.id, '主要工程看板', 0, '預設專案工程與工務進度看板');
+      .run(boardId, p.id, '銝餉?撌亦??', 0, '?身撠?撌亦??極?脣漲?');
 
     const defaultCols = [
-      { name: '待辦事項 (Backlog)', limit: 0, pos: 0 },
-      { name: '進行中 (In Progress)', limit: 3, pos: 1 },
-      { name: '審查檢核 (Review)', limit: 2, pos: 2 },
-      { name: '已完工 (Done)', limit: 0, pos: 3 }
+      { name: '敺齒鈭? (Backlog)', limit: 0, pos: 0 },
+      { name: '?脰?銝?(In Progress)', limit: 3, pos: 1 },
+      { name: '撖拇瑼Ｘ (Review)', limit: 2, pos: 2 },
+      { name: '撌脣?撌?(Done)', limit: 0, pos: 3 }
     ];
     const colStmt = db.prepare('INSERT INTO columns (id, board_id, name, wip_limit, position) VALUES (?, ?, ?, ?, ?)');
     for (let i = 0; i < defaultCols.length; i++) {
@@ -393,8 +392,88 @@ app.post('/api/users', (req, res) => {
   }
 });
 
+
+// --- Lunch Orders & Restaurants ---
+app.get('/api/lunch/restaurants', (req, res) => {
+  try {
+    res.json(getLunchRestaurants());
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/lunch/restaurants', (req, res) => {
+  try {
+    const restaurant = addLunchRestaurant(req.body);
+    res.status(201).json(restaurant);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/lunch/orders', (req, res) => {
+  try {
+    res.json(getLunchOrders());
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/lunch/orders', (req, res) => {
+  try {
+    const order = addLunchOrder(req.body);
+    res.status(201).json(order);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/lunch/orders/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const order = updateLunchOrderStatus(id, status);
+    res.json(order);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/lunch/orders/:id/items', (req, res) => {
+  try {
+    const { id } = req.params;
+    const itemData = { ...req.body, order_id: id };
+    const item = addLunchOrderItem(itemData);
+    res.status(201).json(item);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/lunch/items/:id/paid', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_paid } = req.body;
+    toggleLunchItemPaid(id, Boolean(is_paid));
+    res.json({ success: true, id, is_paid: Boolean(is_paid) });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/lunch/items/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    deleteLunchOrderItem(id);
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Start Express server
 app.listen(PORT, () => {
   console.log(`[SQLite Backend API] Server running at http://localhost:${PORT}`);
   console.log(`[SQLite Backend API] Database: data/pms.sqlite (WAL mode)`);
 });
+

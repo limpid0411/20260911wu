@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   KanbanSquare,
+  Utensils,
   FileText,
   BarChart3,
   Users,
@@ -23,9 +24,10 @@ import { KanbanBoard } from './components/Kanban/KanbanBoard';
 import { RFIDashboard } from './components/RFI/RFIDashboard';
 import { ProjectAnalytics } from './components/Analytics/ProjectAnalytics';
 import { TeamManagement } from './components/Team/TeamManagement';
+import { LunchOrderManagement } from './components/LunchOrder/LunchOrderManagement';
 import { NotificationDropdown } from './components/Notification/NotificationDropdown';
 
-type NavigationTab = 'KANBAN' | 'RFI' | 'ANALYTICS' | 'TEAM';
+type NavigationTab = 'KANBAN' | 'RFI' | 'ANALYTICS' | 'TEAM' | 'LUNCH';
 
 export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -335,6 +337,20 @@ export default function App() {
               <Users className="w-3.5 h-3.5" strokeWidth={1.5} />
               RBAC MATRIX (成員權限)
             </button>
+          
+            <button
+              type="button"
+              id="tab-lunch"
+              onClick={() => setActiveTab('LUNCH')}
+              className={`flex items-center gap-2 py-3 px-5 border-b-4 transition-colors whitespace-nowrap ${
+                activeTab === 'LUNCH'
+                  ? 'border-black bg-black text-white font-bold'
+                  : 'border-transparent text-[#525252] hover:text-black hover:bg-[#F5F5F5]'
+              }`}
+            >
+              <Utensils className="w-3.5 h-3.5" strokeWidth={1.5} />
+              LUNCH ORDER (午餐團購)
+            </button>
           </nav>
         </div>
       </header>
@@ -394,6 +410,10 @@ export default function App() {
             currentUser={currentUser}
             onSwitchUser={handleSwitchUser}
           />
+        )}
+      
+        {activeTab === 'LUNCH' && (
+          <LunchOrderManagement />
         )}
       </main>
 

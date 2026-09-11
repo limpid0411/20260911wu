@@ -147,3 +147,48 @@ export interface ApiLogEntry {
   requestPayload?: any;
   responsePreview?: any;
 }
+
+// Lunch Order Management Interfaces
+export type LunchOrderStatus = 'OPEN' | 'CLOSED' | 'ORDERED';
+
+export interface LunchMenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category?: string;
+}
+
+export interface LunchRestaurant {
+  id: string;
+  name: string;
+  phone: string;
+  category: string;
+  menu_items: LunchMenuItem[];
+}
+
+export interface LunchOrderItem {
+  id: string;
+  order_id: string;
+  user_id: string;
+  user_name: string;
+  item_name: string;
+  price: number;
+  quantity: number;
+  note?: string;
+  is_paid: boolean;
+  created_at: string;
+}
+
+export interface LunchOrder {
+  id: string;
+  title: string;
+  restaurant_id: string;
+  restaurant_name?: string;
+  restaurant_phone?: string;
+  date: string;
+  cutoff_time: string;
+  status: LunchOrderStatus;
+  created_by: string;
+  created_at: string;
+  items: LunchOrderItem[];
+}
