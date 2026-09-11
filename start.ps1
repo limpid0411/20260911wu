@@ -33,28 +33,33 @@ if (-not (Test-Path "node_modules")) {
     Write-Host ""
 }
 
-# 3. 檢查連接埠 3000 是否被佔用
-$port = 3000
-$conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-if ($conns) {
-    Write-Host "[提示] 偵測到連接埠 $port 目前有舊程序在運行，正在為您重置..." -ForegroundColor Yellow
-    foreach ($c in $conns) {
-        Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+# 3. 檢查並清理連接埠 3000 與 3001
+$ports = @(3000, 3001)
+foreach ($p in $ports) {
+    $conns = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue
+    if ($conns) {
+        Write-Host "[提示] 正在釋放連接埠 $p 之舊程序..." -ForegroundColor Yellow
+        foreach ($c in $conns) {
+            Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+        }
     }
-    Start-Sleep -Seconds 1
 }
+Start-Sleep -Seconds 1
 
-# 4. 啟動 Vite 開發伺服器並自動開啟瀏覽器
-Write-Host "[啟動中] 正在開啟本地伺服器並喚醒瀏覽器: http://localhost:$port ..." -ForegroundColor Green
+# 4. 啟動 SQLite 後端 API (Port 3001)
+Write-Host "[後端啟動] 正在啟動 SQLite 後端 API 服務 (http://localhost:3001)..." -ForegroundColor Cyan
+Start-Process "node" -ArgumentList "--import tsx/esm server/index.ts" -WindowStyle Hidden
+Start-Sleep -Seconds 1
+
+# 5. 啟動 Vite 前端伺服器 (Port 3000) 並開啟瀏覽器
+Write-Host "[前端啟動] 正在開啟本地伺服器並喚醒瀏覽器: http://localhost:3000 ..." -ForegroundColor Green
 Remove-Item env:CI -ErrorAction SilentlyContinue
 
-# 背景定時喚醒預設瀏覽器（若 2 秒後伺服器啟動，自動開啟頁面）
 Start-Job -ScriptBlock {
-    param($p)
     Start-Sleep -Seconds 2
     try {
-        Start-Process "http://localhost:$p"
+        Start-Process "http://localhost:3000"
     } catch {}
-} -ArgumentList $port | Out-Null
+} | Out-Null
 
 & cmd.exe /c "npm.cmd run dev"

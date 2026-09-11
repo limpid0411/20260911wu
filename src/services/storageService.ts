@@ -83,6 +83,7 @@ class StorageService {
       if (storedProj && this.projects.some(p => p.id === storedProj)) {
         this.currentProjectId = storedProj;
       }
+      this.syncFromBackend();
     } catch {
       this.resetToDefaults();
     }
@@ -104,6 +105,71 @@ class StorageService {
       console.warn('Storage quota exceeded or storage unavailable', e);
     }
   }
+
+  public async syncFromBackend() {
+    try {
+      const res = await fetch('/api/all');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.users && data.users.length) {
+          this.users = data.users;
+          this.saveToStorage(STORAGE_KEYS.USERS, this.users);
+        }
+        if (data.projects && data.projects.length) {
+          this.projects = data.projects;
+          this.saveToStorage(STORAGE_KEYS.PROJECTS, this.projects);
+        }
+        if (data.boards && data.boards.length) {
+          this.boards = data.boards;
+          this.saveToStorage(STORAGE_KEYS.BOARDS, this.boards);
+        }
+        if (data.columns && data.columns.length) {
+          this.columns = data.columns;
+          this.saveToStorage(STORAGE_KEYS.COLUMNS, this.columns);
+        }
+        if (data.tasks) {
+          this.tasks = data.tasks;
+          this.saveToStorage(STORAGE_KEYS.TASKS, this.tasks);
+        }
+        if (data.rfis) {
+          this.rfis = data.rfis;
+          this.saveToStorage(STORAGE_KEYS.RFIS, this.rfis);
+        }
+        if (data.rfiAuditLogs) {
+          this.rfiAuditLogs = data.rfiAuditLogs;
+          this.saveToStorage(STORAGE_KEYS.RFI_AUDIT_LOGS, this.rfiAuditLogs);
+        }
+        if (data.attachments) {
+          this.attachments = data.attachments;
+          this.saveToStorage(STORAGE_KEYS.ATTACHMENTS, this.attachments);
+        }
+        if (data.comments) {
+          this.comments = data.comments;
+          this.saveToStorage(STORAGE_KEYS.COMMENTS, this.comments);
+        }
+        if (data.notifications && data.notifications.length) {
+          this.notifications = data.notifications;
+          this.saveToStorage(STORAGE_KEYS.NOTIFICATIONS, this.notifications);
+        }
+        this.notify();
+      }
+    } catch {
+      // Backend offline or fallback
+    }
+  }
+
+  private async apiRequest(endpoint: string, method: string, payload?: any) {
+    try {
+      await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: payload ? JSON.stringify(payload) : undefined
+      });
+    } catch {
+      // Non-blocking
+    }
+  }
+
 
   public subscribe(listener: () => void) {
     this.listeners.add(listener);
@@ -526,6 +592,8 @@ class StorageService {
     };
     this.rfiAuditLogs.unshift(auditLog);
     this.saveToStorage(STORAGE_KEYS.RFI_AUDIT_LOGS, this.rfiAuditLogs);
+    this.apiRequest('/api/rfis', 'POST', newRFI);
+    this.apiRequest('/api/rfi-audit-logs', 'POST', auditLog);
 
     this.logApi('POST', `/api/v1/projects/${rfiData.project_id}/rfis`, rfiData, newRFI, 201);
     this.broadcastRealtime(
@@ -561,6 +629,8 @@ class StorageService {
     };
     this.rfiAuditLogs.unshift(auditLog);
     this.saveToStorage(STORAGE_KEYS.RFI_AUDIT_LOGS, this.rfiAuditLogs);
+    this.apiRequest('/api/rfis/' + rfiId, 'PUT', { status });
+    this.apiRequest('/api/rfi-audit-logs', 'POST', auditLog);
 
     this.logApi('PUT', `/api/v1/rfis/${rfiId}/status`, { status, comment }, { success: true });
     this.broadcastRealtime(
@@ -596,6 +666,8 @@ class StorageService {
     };
     this.rfiAuditLogs.unshift(auditLog);
     this.saveToStorage(STORAGE_KEYS.RFI_AUDIT_LOGS, this.rfiAuditLogs);
+    this.apiRequest('/api/rfis/' + rfiId, 'PUT', { official_reply: officialReply, status: 'ANSWERED', answered_at: rfi.answered_at, answered_by: rfi.answered_by });
+    this.apiRequest('/api/rfi-audit-logs', 'POST', auditLog);
 
     this.logApi('POST', `/api/v1/rfis/${rfiId}/reply`, { officialReply }, { success: true });
     this.broadcastRealtime(
@@ -630,6 +702,8 @@ class StorageService {
     };
     this.rfiAuditLogs.unshift(auditLog);
     this.saveToStorage(STORAGE_KEYS.RFI_AUDIT_LOGS, this.rfiAuditLogs);
+    this.apiRequest('/api/rfis/' + rfiId, 'PUT', { status: 'CLOSED', closed_at: rfi.closed_at, closed_by: rfi.closed_by });
+    this.apiRequest('/api/rfi-audit-logs', 'POST', auditLog);
 
     this.logApi('POST', `/api/v1/rfis/${rfiId}/close`, { resolutionNote }, { success: true });
     this.broadcastRealtime('RFI_STATUS_CHANGED', 'RFI 結案存證', `RFI ${rfi.rfi_number} 已由 ${currentUser.full_name} 正式結案！`);
@@ -682,6 +756,7 @@ class StorageService {
 
     this.attachments.push(newAtt);
     this.saveToStorage(STORAGE_KEYS.ATTACHMENTS, this.attachments);
+    this.apiRequest('/api/attachments', 'POST', newAtt);
 
     // If target is RFI, log to audit trail
     if (attachmentData.target_type === 'RFI') {
@@ -697,6 +772,7 @@ class StorageService {
       };
       this.rfiAuditLogs.unshift(auditLog);
       this.saveToStorage(STORAGE_KEYS.RFI_AUDIT_LOGS, this.rfiAuditLogs);
+      this.apiRequest('/api/rfi-audit-logs', 'POST', auditLog);
     }
 
     this.logApi('POST', '/api/v1/attachments/confirm', attachmentData, newAtt, 201);
@@ -716,6 +792,7 @@ class StorageService {
   public deleteAttachment(attachmentId: string) {
     this.attachments = this.attachments.filter((a) => a.id !== attachmentId);
     this.saveToStorage(STORAGE_KEYS.ATTACHMENTS, this.attachments);
+    this.apiRequest('/api/attachments/' + attachmentId, 'DELETE');
     this.logApi('DELETE', `/api/v1/attachments/${attachmentId}`, {}, { success: true });
     this.notify();
   }
@@ -737,6 +814,7 @@ class StorageService {
     };
     this.comments.push(comment);
     this.saveToStorage(STORAGE_KEYS.COMMENTS, this.comments);
+    this.apiRequest('/api/comments', 'POST', comment);
     this.logApi('POST', `/api/v1/tasks/${taskId}/comments`, { content }, comment, 201);
     this.notify();
     return comment;
@@ -776,6 +854,7 @@ class StorageService {
     const notif = this.notifications.find((n) => n.id === id);
     if (notif) {
       notif.is_read = true;
+      this.apiRequest('/api/notifications/' + id + '/read', 'PUT');
       this.notify();
     }
   }
@@ -784,6 +863,7 @@ class StorageService {
     this.notifications.forEach((n) => {
       n.is_read = true;
     });
+    this.apiRequest('/api/notifications/read-all', 'PUT');
     this.notify();
   }
 
