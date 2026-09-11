@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #000000;
+    --muted: #f5f5f5;
+    --muted-foreground: #525252;
+    --accent: #000000;
+    --accent-foreground: #ffffff;
+    --border: #000000;
+    --border-light: #e5e5e5;
+    --card: #ffffff;
+    --card-foreground: #000000;
+    --ring: #000000;
+
+    --font-display: "Playfair Display", Georgia, serif;
+    --font-body: "Source Serif 4", Georgia, serif;
+    --font-mono: "JetBrains Mono", monospace;
+  }
+
+  /* Sharp Geometric Precision: Zero border radius everywhere (Non-negotiable) */
+  *,
+  *::before,
+  *::after {
+    border-radius: 0px !important;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    /* Primary Pattern: Subtle Horizontal Lines (Global) */
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.02) 1px,
+      rgba(0, 0, 0, 0.02) 2px
+    );
+    background-size: 100% 4px;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Editorial Serif Display Headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+
+  /* Monospace & Technical Labels */
+  code, pre, kbd, samp, .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  /* Inputs: 2px solid #000000, 0px radius, instant focus thickening */
+  input, select, textarea {
+    border-radius: 0px !important;
+    transition: border-width 0ms, border-color 0ms;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none !important;
+    border-color: #000000 !important;
+  }
+
+  /* Strict zero shadows */
+  * {
+    box-shadow: none !important;
+  }
+}
+
+/* Custom Minimalist Monochrome utility classes */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Texture Utilities */
+.texture-grid {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.texture-lines-dark {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 1px,
+    rgba(255, 255, 255, 0.04) 1px,
+    rgba(255, 255, 255, 0.04) 2px
+  );
+  background-size: 4px 100%;
+}
+
+/* Strict Heavy Rules */
+.rule-thin {
+  border-bottom: 1px solid #000000;
+}
+
+.rule-thick {
+  border-bottom: 4px solid #000000;
+}
+
+.rule-ultra {
+  border-bottom: 8px solid #000000;
+}
+
+/* Instant button classes adhering to Minimalist Monochrome */
+.btn-mono-primary {
+  background-color: #000000;
+  color: #ffffff;
+  border: 2px solid #000000;
+  padding: 0.625rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 100ms, color 100ms;
+}
+
+.btn-mono-primary:hover {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.btn-mono-primary:focus-visible {
+  outline: 3px solid #000000;
+  outline-offset: 3px;
+}
+
+.btn-mono-outline {
+  background-color: transparent;
+  color: #000000;
+  border: 2px solid #000000;
+  padding: 0.625rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 100ms, color 100ms;
+}
+
+.btn-mono-outline:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.btn-mono-outline:focus-visible {
+  outline: 3px solid #000000;
+  outline-offset: 3px;
+}

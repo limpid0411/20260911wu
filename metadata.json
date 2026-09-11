@@ -1,0 +1,6 @@
+{
+  "name": "企業級專案管理系統 (Enterprise PMS & RFI)",
+  "description": "支援敏捷多維度看板、工程 RFI 追蹤狀態機、剪貼簿圖片直接貼圖、WIP 限制與多角色 RBAC 權限架構的企業級專案管理系統。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
