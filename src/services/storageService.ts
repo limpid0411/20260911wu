@@ -911,6 +911,22 @@ class StorageService {
     }
   }
 
+  
+  public async updateLunchRestaurant(restaurant: LunchRestaurant) {
+    const idx = this.lunchRestaurants.findIndex(r => r.id === restaurant.id);
+    if (idx !== -1) {
+      this.lunchRestaurants[idx] = restaurant;
+      this.notify();
+    }
+    try {
+      await this.apiRequest('/api/lunch/restaurants/' + restaurant.id, 'PUT', restaurant);
+      await this.fetchLunchRestaurants();
+      await this.fetchLunchOrders();
+    } catch (e) {
+      console.warn('Failed to update lunch restaurant:', e);
+    }
+  }
+
   public async createLunchRestaurant(restaurant: LunchRestaurant) {
     this.lunchRestaurants.push(restaurant);
     this.notify();

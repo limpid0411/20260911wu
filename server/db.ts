@@ -467,6 +467,23 @@ export function getLunchRestaurants(): LunchRestaurant[] {
   }));
 }
 
+
+export function updateLunchRestaurant(restaurant: LunchRestaurant): LunchRestaurant {
+  const stmt = db.prepare(`
+    UPDATE lunch_restaurants
+    SET name = ?, phone = ?, category = ?, menu_items = ?
+    WHERE id = ?
+  `);
+  stmt.run(
+    restaurant.name,
+    restaurant.phone,
+    restaurant.category,
+    JSON.stringify(restaurant.menu_items || []),
+    restaurant.id
+  );
+  return restaurant;
+}
+
 export function addLunchRestaurant(restaurant: LunchRestaurant): LunchRestaurant {
   const stmt = db.prepare(`
     INSERT INTO lunch_restaurants (id, name, phone, category, menu_items)

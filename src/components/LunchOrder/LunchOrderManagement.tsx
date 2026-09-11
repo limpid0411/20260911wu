@@ -2,7 +2,7 @@
 import {
   Utensils, ShoppingBag, Plus, Clock, CheckCircle2, XCircle,
   Store, Phone, DollarSign, User as UserIcon, Trash2, AlertCircle,
-  Coffee, Check, Lock, Unlock
+  Coffee, Check, Lock, Unlock, Edit3
 } from 'lucide-react';
 import { storageService } from '../../services/storageService';
 import {
@@ -16,6 +16,7 @@ export const LunchOrderManagement: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
+  const [editingRestaurantId, setEditingRestaurantId] = useState<string | null>(null);
 
   const [newOrderTitle, setNewOrderTitle] = useState('');
   const [newOrderRestaurantId, setNewOrderRestaurantId] = useState('');
@@ -107,6 +108,23 @@ export const LunchOrderManagement: React.FC = () => {
     await storageService.updateLunchOrderStatus(orderId, newStatus);
   };
 
+  const handleStartEditRestaurant = (r: LunchRestaurant) => {
+    setEditingRestaurantId(r.id);
+    setNewRestName(r.name);
+    setNewRestPhone(r.phone);
+    setNewRestCategory(r.category);
+    setNewMenuItemsText(
+      r.menu_items.map((m) => `${m.name}:${m.price}`).join(', ')
+    );
+  };
+
+  const handleCancelEditRestaurant = () => {
+    setEditingRestaurantId(null);
+    setNewRestName('');
+    setNewRestPhone('');
+    setNewMenuItemsText('招牌排骨飯:110, 酥炸雞腿飯:120, 古早味紅茶:25');
+  };
+
   const handleAddRestaurant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRestName) return;
@@ -122,16 +140,28 @@ export const LunchOrderManagement: React.FC = () => {
       })
       .filter((m) => m.name);
 
-    await storageService.createLunchRestaurant({
-      id: `r_${Date.now()}`,
-      name: newRestName,
-      phone: newRestPhone,
-      category: newRestCategory,
-      menu_items: parsedMenuItems
-    });
+    if (editingRestaurantId) {
+      await storageService.updateLunchRestaurant({
+        id: editingRestaurantId,
+        name: newRestName,
+        phone: newRestPhone,
+        category: newRestCategory,
+        menu_items: parsedMenuItems
+      });
+      setEditingRestaurantId(null);
+    } else {
+      await storageService.createLunchRestaurant({
+        id: `r_${Date.now()}`,
+        name: newRestName,
+        phone: newRestPhone,
+        category: newRestCategory,
+        menu_items: parsedMenuItems
+      });
+    }
 
     setNewRestName('');
     setNewRestPhone('');
+    setNewMenuItemsText('招牌排骨飯:110, 酥炸雞腿飯:120, 古早味紅茶:25');
     setShowRestaurantModal(false);
   };
 
@@ -629,7 +659,7 @@ export const LunchOrderManagement: React.FC = () => {
                 <span>合作店家與菜單庫管理</span>
               </h3>
               <button
-                onClick={() => setShowRestaurantModal(false)}
+                onClick={() => { setEditingRestaurantId(null); setShowRestaurantModal(false); }}
                 className="text-slate-400 hover:text-slate-600 text-lg"
               >
                 ✕
@@ -644,13 +674,28 @@ export const LunchOrderManagement: React.FC = () => {
                 {restaurants.map((r) => (
                   <div
                     key={r.id}
-                    className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 space-y-2 text-xs"
+                    className={`p-3 rounded-xl border space-y-2 text-xs transition ${
+                      editingRestaurantId === r.id
+                        ? 'bg-blue-50 border-blue-400 dark:bg-blue-950/40 dark:border-blue-600 shadow-sm ring-2 ring-blue-500/20'
+                        : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600'
+                    }`}
                   >
                     <div className="flex items-center justify-between font-bold text-sm text-slate-800 dark:text-slate-100">
                       <span>{r.name}</span>
-                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full">
-                        {r.category}
-                      </span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full">
+                          {r.category}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditRestaurant(r)}
+                          className="flex items-center space-x-1 px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 rounded hover:bg-amber-200 font-medium transition"
+                          title="修改此店家資訊與菜單"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>修改</span>
+                        </button>
+                      </div>
                     </div>
                     <div className="text-slate-500">電話: {r.phone || '無'}</div>
                     <div className="text-slate-600 dark:text-slate-300">
@@ -665,9 +710,35 @@ export const LunchOrderManagement: React.FC = () => {
               onSubmit={handleAddRestaurant}
               className="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3"
             >
-              <div className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
-                <Plus className="w-4 h-4 text-blue-500" />
-                <span>新增店家與菜單</span>
+              <div className="space-y-2">
+                <div className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+                  {editingRestaurantId ? (
+                    <>
+                      <Edit3 className="w-4 h-4 text-amber-500" />
+                      <span>修改店家資料與菜單品項</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 text-blue-500" />
+                      <span>新增店家與菜單</span>
+                    </>
+                  )}
+                </div>
+                {editingRestaurantId && (
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center justify-between text-xs text-amber-800 dark:text-amber-200">
+                    <div className="flex items-center space-x-1.5">
+                      <Edit3 className="w-3.5 h-3.5 text-amber-600" />
+                      <span>正在修改：<strong>{newRestName || '店家'}</strong></span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCancelEditRestaurant}
+                      className="text-xs text-slate-500 hover:text-slate-700 underline"
+                    >
+                      取消修改 (切換回新增)
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -733,7 +804,7 @@ export const LunchOrderManagement: React.FC = () => {
                   type="submit"
                   className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold shadow-sm hover:bg-blue-700"
                 >
-                  儲存店家與菜單
+                  {editingRestaurantId ? '儲存修改' : '儲存店家與菜單'}
                 </button>
               </div>
             </form>

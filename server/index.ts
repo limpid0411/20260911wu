@@ -1,5 +1,6 @@
 ﻿import express from 'express';
-import { db, getAllData, getLunchRestaurants, addLunchRestaurant, getLunchOrders, addLunchOrder, updateLunchOrderStatus, addLunchOrderItem, toggleLunchItemPaid, deleteLunchOrderItem } from './db';
+import { db, getAllData, getLunchRestaurants, addLunchRestaurant,
+  updateLunchRestaurant, getLunchOrders, addLunchOrder, updateLunchOrderStatus, addLunchOrderItem, toggleLunchItemPaid, deleteLunchOrderItem } from './db';
 import { Task, RFI, Project, BoardColumn, RFIAuditLog, Attachment, TaskComment, Notification, User } from '../src/types/pms';
 
 // Seed data if DB is empty
@@ -406,6 +407,17 @@ app.post('/api/lunch/restaurants', (req, res) => {
   try {
     const restaurant = addLunchRestaurant(req.body);
     res.status(201).json(restaurant);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+app.put('/api/lunch/restaurants/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurant = updateLunchRestaurant({ ...req.body, id });
+    res.json(restaurant);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
