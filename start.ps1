@@ -1,6 +1,10 @@
 ﻿[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
+try {
+    $host.UI.RawUI.WindowTitle = "企業級專案管理系統 (PMS) 伺服器"
+} catch {}
+
 Write-Host "===================================================" -ForegroundColor Cyan
 Write-Host "  正在啟動 企業級專案管理系統 (Enterprise PMS)" -ForegroundColor Cyan
 Write-Host "===================================================" -ForegroundColor Cyan
@@ -18,7 +22,7 @@ if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
 
 # 2. 檢查 node_modules 是否存在
 if (-not (Test-Path "node_modules")) {
-    Write-Host "[提示] 正在為您安裝專案相依套件 (npm install)..." -ForegroundColor Yellow
+    Write-Host "[提示] 尚未檢測到相依套件庫，正在為您安裝 (npm install)..." -ForegroundColor Yellow
     & cmd.exe /c "npm.cmd install"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[錯誤] 套件安裝失敗，請檢查網路連線或錯誤訊息。" -ForegroundColor Red
@@ -40,8 +44,17 @@ if ($conns) {
     Start-Sleep -Seconds 1
 }
 
-# 4. 啟動 Vite 開發伺服器
-Write-Host "[啟動中] 正在開啟本地伺服器 (http://localhost:$port)..." -ForegroundColor Green
-$env:CI = "true"
-Start-Process "http://localhost:$port"
+# 4. 啟動 Vite 開發伺服器並自動開啟瀏覽器
+Write-Host "[啟動中] 正在開啟本地伺服器並喚醒瀏覽器: http://localhost:$port ..." -ForegroundColor Green
+Remove-Item env:CI -ErrorAction SilentlyContinue
+
+# 背景定時喚醒預設瀏覽器（若 2 秒後伺服器啟動，自動開啟頁面）
+Start-Job -ScriptBlock {
+    param($p)
+    Start-Sleep -Seconds 2
+    try {
+        Start-Process "http://localhost:$p"
+    } catch {}
+} -ArgumentList $port | Out-Null
+
 & cmd.exe /c "npm.cmd run dev"
